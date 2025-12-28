@@ -80,7 +80,8 @@ function runSetupCommands() {
     const commands = [
     "bun add react-globe.gl@^2.25.1",
     "bun add three@^0.169.0",
-    "bun add katex@^0.16.11"
+    "bun add katex@^0.16.11",
+    "bun add katex"
 ];
     
     if (commands.length === 0) {
