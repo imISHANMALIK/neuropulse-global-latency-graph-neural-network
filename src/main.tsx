@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import '@/index.css'
-import { GlobalMonitorPage } from '@/pages/GlobalMonitorPage'
+import { HomePage } from '@/pages/HomePage'
 import { ArchitecturePage } from '@/pages/ArchitecturePage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -19,7 +19,7 @@ const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <GlobalMonitorPage />,
+    element: <HomePage />,
     errorElement: <RouteErrorBoundary />,
   },
   {

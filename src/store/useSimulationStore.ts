@@ -29,17 +29,28 @@ interface SimulationState {
   setPropagationSpeed: (speed: number) => void;
   setShockMagnitude: (magnitude: number) => void;
 }
-const INITIAL_NODES: PoPNode[] = JSON.parse(JSON.stringify(MOCK_NODES)).map((n: any) => ({
+const INITIAL_NODES: PoPNode[] = MOCK_NODES.map((n) => ({
   ...n,
   status: 'stable',
   baseline: n.latency,
   history: []
 }));
+// Helper for geographical distance factor in GNN coupling
+function getGeoDistance(n1: PoPNode, n2: PoPNode) {
+  const R = 6371; // Earth radius in km
+  const dLat = (n2.lat - n1.lat) * Math.PI / 180;
+  const dLon = (n2.lng - n1.lng) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(n1.lat * Math.PI / 180) * Math.cos(n2.lat * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
 export const useSimulationStore = create<SimulationState>((set) => ({
   nodes: INITIAL_NODES,
   edges: MOCK_EDGES,
-  propagationSpeed: 0.5,
-  shockMagnitude: 80,
+  propagationSpeed: 0.8,
+  shockMagnitude: 120,
   lastEvent: null,
   setPropagationSpeed: (speed) => set({ propagationSpeed: speed }),
   setShockMagnitude: (magnitude) => set({ shockMagnitude: magnitude }),
@@ -58,41 +69,43 @@ export const useSimulationStore = create<SimulationState>((set) => ({
     });
     return {
       nodes: newNodes,
-      lastEvent: `Shock injected at ${node.name} (${nodeId})`
+      lastEvent: `ALERT: Shock detected at ${node.name} (${nodeId})`
     };
   }),
   resetSimulation: () => set({
     nodes: INITIAL_NODES.map(n => ({ ...n, history: [] })),
-    lastEvent: "Simulation state reset to baseline"
+    lastEvent: "SYSTEM: All simulation vectors reset to baseline"
   }),
   tick: () => set((state) => {
     const time = Date.now();
-    const decayFactor = 0.96; // Slightly slower decay for better visual tracking
-    const coupling = 0.12 * state.propagationSpeed; // Dynamic GNN coupling weight
+    const decayFactor = 0.94; // Optimized decay
+    const coupling = 0.15 * state.propagationSpeed;
     const nextNodes = state.nodes.map(node => {
-      // 1. Spatial Aggregation (GNN Message Passing Implementation)
+      // 1. Spatial Aggregation with Geo-Distance Falloff
       let neighborhoodImpact = 0;
       const connectedEdges = state.edges.filter(e => e.source === node.id || e.target === node.id);
       connectedEdges.forEach(edge => {
         const neighborId = edge.source === node.id ? edge.target : edge.source;
         const neighbor = state.nodes.find(n => n.id === neighborId);
         if (neighbor) {
+          const distance = getGeoDistance(node, neighbor);
+          const distanceDecay = Math.max(0.1, 1 - (distance / 20000)); // Normalized distance factor
           const stress = Math.max(0, neighbor.latency - neighbor.baseline);
-          neighborhoodImpact += stress * edge.weight * coupling;
+          neighborhoodImpact += stress * edge.weight * coupling * distanceDecay;
         }
       });
-      // 2. Temporal Update (Decay + Propagation)
+      // 2. Temporal GRU Update
       const currentStress = node.latency - node.baseline;
       const nextLatency = node.baseline + (currentStress * decayFactor) + neighborhoodImpact;
-      // 3. Status State Machine
+      // 3. Status Mapping
       let nextStatus: NodeStatus = 'stable';
-      if (nextLatency > node.baseline * 2.5) nextStatus = 'critical';
-      else if (nextLatency > node.baseline * 1.5) nextStatus = 'warning';
-      // 4. Update Time-Series History
+      if (nextLatency > node.baseline * 3) nextStatus = 'critical';
+      else if (nextLatency > node.baseline * 1.8) nextStatus = 'warning';
+      // 4. History Snapshot
       const newHistoryEntry = {
         time,
         latency: parseFloat(nextLatency.toFixed(2)),
-        risk: Math.min(100, Math.max(0, ((nextLatency - node.baseline) / node.baseline) * 50))
+        risk: Math.min(100, Math.max(0, ((nextLatency - node.baseline) / node.baseline) * 40))
       };
       const newHistory = [...node.history, newHistoryEntry].slice(-60);
       return {

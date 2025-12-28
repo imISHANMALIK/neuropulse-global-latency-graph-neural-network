@@ -1,138 +1,160 @@
-// Home page of the app.
-// Currently a demo placeholder "please wait" screen.
-// Replace this file with your actual app UI. Do not delete it to use some other file as homepage. Simply replace the entire contents of this file.
-
-import { useEffect, useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
-
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { HAS_TEMPLATE_DEMO, TemplateDemo } from '@/components/TemplateDemo'
-import { Button } from '@/components/ui/button'
-import { Toaster, toast } from '@/components/ui/sonner'
-
-function formatDuration(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
+import React, { useEffect, useRef, useState } from 'react';
+import Globe from 'react-globe.gl';
+import { useSimulationStore } from '@/store/useSimulationStore';
+import { SimulationOverlay } from '@/components/SimulationOverlay';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { AppNavbar } from '@/components/layout/AppNavbar';
+import { SidebarTrigger, SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { Activity, Shield, Zap, Globe as GlobeIcon, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 export function HomePage() {
-  const [coins, setCoins] = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const [startedAt, setStartedAt] = useState<number | null>(null)
-  const [elapsedMs, setElapsedMs] = useState(0)
-
+  const globeRef = useRef<any>();
+  const nodes = useSimulationStore(s => s.nodes);
+  const edges = useSimulationStore(s => s.edges);
+  const tick = useSimulationStore(s => s.tick);
+  const injectShock = useSimulationStore(s => s.injectShock);
+  const [isReady, setIsReady] = useState(false);
   useEffect(() => {
-    if (!isRunning || startedAt === null) return
-
-    const t = setInterval(() => {
-      setElapsedMs(Date.now() - startedAt)
-    }, 250)
-
-    return () => clearInterval(t)
-  }, [isRunning, startedAt])
-
-  const formatted = useMemo(() => formatDuration(elapsedMs), [elapsedMs])
-
-  const onPleaseWait = () => {
-    setCoins((c) => c + 1)
-
-    if (!isRunning) {
-      // Resume from the current elapsed time
-      setStartedAt(Date.now() - elapsedMs)
-      setIsRunning(true)
-      toast.success('Building your app…', {
-        description: "Hang tight — we're setting everything up.",
-      })
-      return
+    const timer = setInterval(() => tick(), 1000);
+    return () => clearInterval(timer);
+  }, [tick]);
+  useEffect(() => {
+    if (globeRef.current) {
+      globeRef.current.controls().autoRotate = true;
+      globeRef.current.controls().autoRotateSpeed = 0.5;
+      globeRef.current.pointOfView({ lat: 20, lng: 0, altitude: 2.5 });
     }
-
-    setIsRunning(false)
-    toast.info('Still working…', {
-      description: 'You can come back in a moment.',
-    })
-  }
-
-  const onReset = () => {
-    setCoins(0)
-    setIsRunning(false)
-    setStartedAt(null)
-    setElapsedMs(0)
-    toast('Reset complete')
-  }
-
-  const onAddCoin = () => {
-    setCoins((c) => c + 1)
-    toast('Coin added')
-  }
-
+  }, []);
+  const handleNodeClick = (node: any) => {
+    injectShock(node.id);
+  };
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 overflow-hidden relative">
-      <ThemeToggle />
-      <div className="absolute inset-0 bg-gradient-rainbow opacity-10 dark:opacity-20 pointer-events-none" />
-
-      <div className="text-center space-y-8 relative z-10 animate-fade-in w-full">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-primary floating">
-            <Sparkles className="w-8 h-8 text-white rotating" />
-          </div>
+    <SidebarProvider defaultOpen={false}>
+      <AppSidebar />
+      <SidebarInset className="bg-zinc-950 overflow-hidden relative">
+        <AppNavbar />
+        {/* Globe Visualization */}
+        <div className="absolute inset-0 cursor-crosshair">
+          <Globe
+            ref={globeRef}
+            globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+            bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+            backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+            pointsData={nodes}
+            pointLat="lat"
+            pointLng="lng"
+            pointColor={(d: any) => d.status === 'critical' ? '#ef4444' : d.status === 'warning' ? '#f59e0b' : '#3b82f6'}
+            pointAltitude={(d: any) => (d.latency - d.baseline) / 200 + 0.01}
+            pointRadius={0.6}
+            pointsMerge={false}
+            onPointClick={handleNodeClick}
+            pointLabel={(d: any) => `
+              <div class="p-3 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl font-mono text-xs">
+                <div class="text-orange-500 font-bold mb-1">${d.name} (${d.id})</div>
+                <div class="text-zinc-400">Latency: <span class="text-white">${d.latency.toFixed(1)}ms</span></div>
+                <div class="text-zinc-400">Status: <span class="${d.status === 'critical' ? 'text-red-500' : 'text-emerald-500'}">${d.status.toUpperCase()}</span></div>
+              </div>
+            `}
+            arcsData={edges}
+            arcStartLat={(d: any) => nodes.find(n => n.id === d.source)?.lat}
+            arcStartLng={(d: any) => nodes.find(n => n.id === d.source)?.lng}
+            arcEndLat={(d: any) => nodes.find(n => n.id === d.target)?.lat}
+            arcEndLng={(d: any) => nodes.find(n => n.id === d.target)?.lng}
+            arcColor={() => ['#3b82f6', '#f97316']}
+            arcDashLength={0.4}
+            arcDashGap={2}
+            arcDashAnimateTime={2000}
+            arcStroke={0.2}
+          />
         </div>
-
-        <div className="space-y-3">
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-balance leading-tight">
-            Creating your <span className="text-gradient">app</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto text-pretty">
-            Your application would be ready soon.
-          </p>
-        </div>
-
-        {HAS_TEMPLATE_DEMO ? (
-          <div className="max-w-5xl mx-auto text-left">
-            <TemplateDemo />
-          </div>
-        ) : (
-          <>
-            <div className="flex justify-center gap-4">
-              <Button
-                size="lg"
-                onClick={onPleaseWait}
-                className="btn-gradient px-8 py-4 text-lg font-semibold hover:-translate-y-0.5 transition-all duration-200"
-                aria-live="polite"
+        {/* Cinematic HUD Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-10">
+          <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 py-8 flex flex-col justify-between">
+            {/* Top HUD */}
+            <header className="flex justify-between items-start">
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-4 pointer-events-auto"
               >
-                Please Wait
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <div>
-                Time elapsed:{' '}
-                <span className="font-medium tabular-nums text-foreground">{formatted}</span>
+                <div className="w-10 h-10 rounded-lg bg-orange-500 center shadow-lg shadow-orange-500/20">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-sm font-bold tracking-widest text-white uppercase">NeuroPulse v1.4</h1>
+                  <p className="text-[10px] text-zinc-500 font-mono">ST-GNN GLOBAL EDGE INFERENCE</p>
+                </div>
+              </motion.div>
+              <div className="flex gap-4 pointer-events-auto">
+                <ThemeToggle className="static" />
+                <div className="bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">System Live</span>
+                </div>
               </div>
-              <div>
-                Coins:{' '}
-                <span className="font-medium tabular-nums text-foreground">{coins}</span>
+            </header>
+            {/* Bottom HUD - Global Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pointer-events-auto">
+              <div className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase font-bold tracking-widest">
+                  <GlobeIcon className="w-3 h-3" /> Topology Health
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-mono text-white">99.98%</span>
+                  <span className="text-[10px] text-emerald-500 mb-1">+0.02%</span>
+                </div>
+              </div>
+              <div className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase font-bold tracking-widest">
+                  <Activity className="w-3 h-3" /> Average Jitter
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-mono text-white">4.2ms</span>
+                  <span className="text-[10px] text-zinc-400 mb-1">STABLE</span>
+                </div>
+              </div>
+              <div className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase font-bold tracking-widest">
+                  <Shield className="w-3 h-3" /> Active Threats
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-mono text-red-500">02</span>
+                  <span className="text-[10px] text-zinc-400 mb-1">MITIGATED</span>
+                </div>
               </div>
             </div>
-
-            <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={onReset}>
-                Reset
-              </Button>
-              <Button variant="outline" size="sm" onClick={onAddCoin}>
-                Add Coin
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-
-      <footer className="absolute bottom-8 text-center text-muted-foreground/80">
-        <p>Powered by Cloudflare</p>
-      </footer>
-
-      <Toaster richColors closeButton />
-    </div>
-  )
+          </div>
+        </div>
+        {/* Interaction Modal */}
+        <AnimatePresence>
+          {!isReady && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-black/80 backdrop-blur-xl center"
+            >
+              <div className="max-w-md w-full p-8 text-center space-y-6">
+                <div className="w-16 h-16 rounded-2xl bg-orange-500 mx-auto center floating shadow-2xl shadow-orange-500/40">
+                  <Info className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-display font-bold text-white">Mission Control</h2>
+                <p className="text-zinc-400 text-sm leading-relaxed">
+                  Welcome to the NeuroPulse ST-GNN Global Dashboard. You are viewing a live spatio-temporal simulation of Cloudflare's edge network. Click any node on the globe to inject a latency shock and observe propagation.
+                </p>
+                <button 
+                  onClick={() => setIsReady(true)}
+                  className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-orange-500/20"
+                >
+                  INITIALIZE MONITOR
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <SimulationOverlay />
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }
