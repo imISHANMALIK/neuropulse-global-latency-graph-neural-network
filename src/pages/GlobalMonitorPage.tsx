@@ -19,23 +19,33 @@ export function GlobalMonitorPage() {
   }, [tick]);
   const globeData = useMemo(() => nodes.map(n => ({
     ...n,
-    size: Math.max(0.2, (n.latency / n.baseline) * 0.5),
+    size: Math.max(0.15, (n.latency / n.baseline) * 0.4),
+    // Using valid 6-digit hex strings to prevent Three.js Color crashes
     color: n.status === 'critical' ? '#ef4444' : n.status === 'warning' ? '#f59e0b' : '#3b82f6'
   })), [nodes]);
   const arcData = useMemo(() => edges.map(e => {
     const start = nodes.find(n => n.id === e.source);
     const end = nodes.find(n => n.id === e.target);
+    const isCritical = start?.status === 'critical' || end?.status === 'critical';
     return {
       startLat: start?.lat,
       startLng: start?.lng,
       endLat: end?.lat,
       endLng: end?.lng,
-      color: (start?.status === 'critical' || end?.status === 'critical') ? '#f97316' : '#3b82f644'
+      // Fixed: Removed alpha hex (8-digit) which crashes some Three.js versions in react-globe.gl
+      color: isCritical ? '#f97316' : '#3b82f6'
     };
   }), [nodes, edges]);
-  const avgLatency = useMemo(() => 
-    (nodes.reduce((acc, n) => acc + n.latency, 0) / nodes.length).toFixed(1), 
-  [nodes]);
+  const avgLatency = useMemo(() => {
+    if (nodes.length === 0) return "0.0";
+    return (nodes.reduce((acc, n) => acc + n.latency, 0) / nodes.length).toFixed(1);
+  }, [nodes]);
+  const currentTrend = useMemo(() => {
+    const totalBaseline = nodes.reduce((acc, n) => acc + n.baseline, 0);
+    const totalCurrent = nodes.reduce((acc, n) => acc + n.latency, 0);
+    const diff = ((totalCurrent - totalBaseline) / totalBaseline) * 100;
+    return diff > 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
+  }, [nodes]);
   return (
     <AppLayout>
       <div className="relative h-screen w-full bg-black overflow-hidden">
@@ -45,7 +55,7 @@ export function GlobalMonitorPage() {
             title="System Latency"
             value={`${avgLatency}ms`}
             icon={<Zap className="w-4 h-4 text-orange-500" />}
-            trend="+1.2%"
+            trend={currentTrend}
           />
           <MetricCard
             title="Edge Integrity"
@@ -76,7 +86,8 @@ export function GlobalMonitorPage() {
             pointColor="color"
             pointRadius="size"
             pointAltitude={0.01}
-            pointsMerge={true}
+            // Disabling pointsMerge for dynamic updates
+            pointsMerge={false}
             arcsData={arcData}
             arcColor="color"
             arcDashLength={0.4}
@@ -87,9 +98,9 @@ export function GlobalMonitorPage() {
             labelLat="lat"
             labelLng="lng"
             labelText="name"
-            labelSize={0.5}
-            labelDotRadius={0.2}
-            labelColor={() => '#ffffff88'}
+            labelSize={0.6}
+            labelDotRadius={0.3}
+            labelColor={() => '#ffffff'}
             labelResolution={2}
           />
         </div>
@@ -108,7 +119,11 @@ function MetricCard({ title, value, icon, trend }: { title: string; value: strin
             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">{title}</p>
             <div className="flex items-baseline gap-2">
               <span className="text-xl font-bold font-mono text-white">{value}</span>
-              {trend && <span className="text-[10px] text-emerald-400 font-mono">{trend}</span>}
+              {trend && (
+                <span className={parseFloat(trend) > 0 ? "text-[10px] text-red-400 font-mono" : "text-[10px] text-emerald-400 font-mono"}>
+                  {trend}
+                </span>
+              )}
             </div>
           </div>
         </CardContent>

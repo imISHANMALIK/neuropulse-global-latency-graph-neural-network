@@ -14,6 +14,7 @@ import '@/index.css'
 import { GlobalMonitorPage } from '@/pages/GlobalMonitorPage'
 import { ArchitecturePage } from '@/pages/ArchitecturePage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
@@ -29,6 +30,11 @@ const router = createBrowserRouter([
   {
     path: "/analytics",
     element: <AnalyticsPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/settings",
+    element: <SettingsPage />,
     errorElement: <RouteErrorBoundary />,
   }
 ]);
