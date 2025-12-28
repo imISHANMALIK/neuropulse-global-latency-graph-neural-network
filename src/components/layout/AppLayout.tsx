@@ -13,8 +13,8 @@ export function AppLayout({ children, container = false, className, contentClass
   return (
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
-      <SidebarInset className={cn("bg-background min-h-screen relative pl-20", className)}>
-        {/* AppNavbar serves as the fixed "Ops Rail" that is always present */}
+      <SidebarInset className={cn("bg-background min-h-screen h-dvh relative md:pl-20 overflow-auto", className)}>
+        {/* Ops Rail Navigation */}
         <AppNavbar />
         <div className="absolute left-2 top-2 z-20 md:hidden">
           <SidebarTrigger />
