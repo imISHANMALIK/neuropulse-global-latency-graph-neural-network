@@ -12,7 +12,7 @@ export function AppNavbar() {
   ];
   return (
     <TooltipProvider>
-      <nav className="fixed left-0 top-0 bottom-0 w-20 flex flex-col items-center py-8 bg-zinc-950/80 backdrop-blur-xl border-r border-white/5 z-50">
+      <nav className="fixed left-0 top-0 bottom-0 w-20 hidden md:flex flex-col items-center py-8 bg-zinc-950/80 backdrop-blur-xl border-r border-white/5 z-50">
         <div className="mb-10">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#F48120] to-[#E55A1B] center shadow-2xl shadow-orange-500/20 group cursor-pointer hover:scale-110 transition-transform">
             <div className="w-6 h-6 border-2 border-white rounded-full opacity-80 group-hover:opacity-100 transition-opacity" />
@@ -26,7 +26,7 @@ export function AppNavbar() {
                   to={item.to}
                   className={({ isActive }) =>
                     cn(
-                      "p-3.5 rounded-2xl transition-all duration-300 relative group",
+                      "p-3.5 rounded-2xl transition-all duration-300 relative group flex items-center justify-center",
                       isActive
                         ? "bg-orange-500/10 text-[#F48120] shadow-inner"
                         : "text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
@@ -37,7 +37,7 @@ export function AppNavbar() {
                     <>
                       <item.icon className="w-6 h-6" />
                       {isActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#F48120] rounded-r-full" />
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#F48120] rounded-r-full shadow-[0_0_8px_#F48120]" />
                       )}
                     </>
                   )}

@@ -4,7 +4,7 @@ import { useSimulationStore } from '@/store/useSimulationStore';
 import { SimulationOverlay } from '@/components/SimulationOverlay';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AppNavbar } from '@/components/layout/AppNavbar';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Activity, Shield, Zap, Globe as GlobeIcon, Info, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,7 +33,7 @@ export function HomePage() {
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       <SidebarInset className="bg-zinc-950 overflow-hidden relative">
-        {/* Navigation Rail - Hidden when sidebar is active/open or managed via AppNavbar */}
+        {/* Navigation Rail - Hidden on mobile, favors SidebarTrigger */}
         <AppNavbar />
         {/* Globe Visualization */}
         <div className="absolute inset-0 cursor-crosshair">
@@ -70,54 +70,57 @@ export function HomePage() {
           />
         </div>
         {/* Cinematic HUD Overlay */}
-        <div className="absolute inset-0 pointer-events-none z-10 pl-20"> {/* Offset for AppNavbar rail */}
+        <div className="absolute inset-0 pointer-events-none z-10 md:pl-20"> {/* Offset for AppNavbar rail on desktop */}
           <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 py-8 flex flex-col justify-between">
             {/* Top HUD */}
-            <header className="flex justify-between items-start">
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-4 pointer-events-auto shadow-2xl"
-              >
-                <div className="w-10 h-10 rounded-lg bg-[#F48120] center shadow-lg shadow-orange-500/20">
-                  <Zap className="w-6 h-6 text-white" />
+            <header className="flex justify-between items-start gap-4">
+              <div className="flex items-center gap-3">
+                <div className="pointer-events-auto md:hidden bg-black/40 backdrop-blur-md border border-white/10 p-2 rounded-xl">
+                  <SidebarTrigger className="text-white hover:bg-white/10" />
                 </div>
-                <div>
-                  <h1 className="text-sm font-bold tracking-widest text-white uppercase">NeuroPulse v1.4</h1>
-                  <p className="text-[10px] text-zinc-500 font-mono tracking-tighter">ST-GNN GLOBAL EDGE INFERENCE</p>
-                </div>
-              </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-4 pointer-events-auto shadow-2xl"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[#F48120] center shadow-lg shadow-orange-500/20">
+                    <Zap className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="hidden sm:block">
+                    <h1 className="text-sm font-bold tracking-widest text-white uppercase">NeuroPulse v1.4</h1>
+                    <p className="text-[10px] text-zinc-500 font-mono tracking-tighter">ST-GNN GLOBAL EDGE INFERENCE</p>
+                  </div>
+                </motion.div>
+              </div>
               <div className="flex gap-4 pointer-events-auto">
                 <ThemeToggle className="static" />
                 <div className="bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">System Live</span>
+                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest hidden sm:inline">System Live</span>
                 </div>
               </div>
             </header>
             {/* Bottom HUD - Global Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pointer-events-auto pb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pointer-events-auto pb-6">
               <div className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl space-y-2 group hover:border-orange-500/30 transition-colors">
                 <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase font-bold tracking-widest">
-                  <GlobeIcon className="w-3 h-3" /> Topology Health
+                  <GlobeIcon className="w-3 h-3 shrink-0" /> <span className="truncate">Topology Health</span>
                 </div>
                 <div className="flex items-end gap-2">
-                  <span className="text-2xl font-mono text-white">99.98%</span>
-                  <span className="text-[10px] text-emerald-500 mb-1">+0.02%</span>
+                  <span className="text-xl md:text-2xl font-mono text-white">99.98%</span>
                 </div>
               </div>
               <div className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl space-y-2 group hover:border-orange-500/30 transition-colors">
                 <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase font-bold tracking-widest">
-                  <Activity className="w-3 h-3" /> Average Jitter
+                  <Activity className="w-3 h-3 shrink-0" /> <span className="truncate">Avg Jitter</span>
                 </div>
                 <div className="flex items-end gap-2">
-                  <span className="text-2xl font-mono text-white">4.2ms</span>
-                  <span className="text-[10px] text-zinc-400 mb-1 font-mono">STABLE</span>
+                  <span className="text-xl md:text-2xl font-mono text-white">4.2ms</span>
                 </div>
               </div>
-              <div className="bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl space-y-2 group hover:border-red-500/30 transition-colors">
+              <div className="hidden md:block bg-black/40 backdrop-blur-md border border-white/10 p-4 rounded-xl space-y-2 group hover:border-red-500/30 transition-colors">
                 <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase font-bold tracking-widest">
-                  <Shield className="w-3 h-3" /> Active Threats
+                  <Shield className="w-3 h-3 shrink-0" /> <span className="truncate">Active Threats</span>
                 </div>
                 <div className="flex items-end gap-2">
                   <span className="text-2xl font-mono text-red-500">02</span>
@@ -134,7 +137,7 @@ export function HomePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-50 bg-black/80 backdrop-blur-xl center"
+              className="absolute inset-0 z-50 bg-black/80 backdrop-blur-xl center p-4"
             >
               <div className="max-w-md w-full p-8 text-center space-y-6">
                 <div className="w-16 h-16 rounded-2xl bg-[#F48120] mx-auto center floating shadow-2xl shadow-orange-500/40">
