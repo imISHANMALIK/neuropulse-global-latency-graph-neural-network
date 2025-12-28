@@ -13,6 +13,7 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import '@/index.css'
 import { GlobalMonitorPage } from '@/pages/GlobalMonitorPage'
 import { ArchitecturePage } from '@/pages/ArchitecturePage'
+import { AnalyticsPage } from '@/pages/AnalyticsPage'
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
@@ -27,7 +28,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/analytics",
-    element: <GlobalMonitorPage />, // Placeholder for next phase
+    element: <AnalyticsPage />,
     errorElement: <RouteErrorBoundary />,
   }
 ]);
