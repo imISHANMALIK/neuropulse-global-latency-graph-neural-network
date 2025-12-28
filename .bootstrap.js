@@ -81,7 +81,8 @@ function runSetupCommands() {
     "bun add react-globe.gl@^2.25.1",
     "bun add three@^0.169.0",
     "bun add katex@^0.16.11",
-    "bun add katex"
+    "bun add katex",
+    "bun add lucide-react clsx tailwind-merge zustand"
 ];
     
     if (commands.length === 0) {
