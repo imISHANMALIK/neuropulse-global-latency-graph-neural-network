@@ -82,7 +82,8 @@ function runSetupCommands() {
     "bun add three@^0.169.0",
     "bun add katex@^0.16.11",
     "bun add katex",
-    "bun add lucide-react clsx tailwind-merge zustand framer-motion recharts"
+    "bun add lucide-react clsx tailwind-merge zustand framer-motion recharts",
+    "bun add recharts"
 ];
     
     if (commands.length === 0) {
