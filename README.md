@@ -1,7 +1,5 @@
 # Neuro Pulse
 
-[![[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/imISHANMALIK/neuropulse-global-latency-graph-neural-network)]](https://deploy.workers.cloudflare.com)
-
 A production-ready full-stack application template powered by Cloudflare Workers and Pages. This starter includes a modern React frontend with Tailwind CSS, shadcn/ui components, and a Hono-powered API backend. Perfect for building fast, scalable web apps with seamless edge deployment.
 
 ## ✨ Features
@@ -107,8 +105,6 @@ Deploy to Cloudflare Pages + Workers in one command:
 bun deploy
 ```
 
-Or use the [one-click deploy][[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/imISHANMALIK/neuropulse-global-latency-graph-neural-network)].
-
 ### Manual Deployment
 1. Install Wrangler: `bun add -g wrangler`
 2. Login: `wrangler login`
@@ -138,4 +134,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Hono](https://hono.dev/)
 
-Built with ❤️ for Cloudflare.
+Built with ❤️ by Ishan Malik for Cloudflare.
