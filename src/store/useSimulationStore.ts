@@ -22,6 +22,7 @@ interface SimulationState {
   propagationSpeed: number;
   shockMagnitude: number;
   lastEvent: string | null;
+  simTimeElapsed: number;
   // Actions
   injectShock: (nodeId: string) => void;
   resetSimulation: () => void;
@@ -35,13 +36,12 @@ const INITIAL_NODES: PoPNode[] = MOCK_NODES.map((n) => ({
   baseline: n.latency,
   history: []
 }));
-// Helper for geographical distance factor in GNN coupling
 function getGeoDistance(n1: PoPNode, n2: PoPNode) {
-  const R = 6371; // Earth radius in km
+  const R = 6371;
   const dLat = (n2.lat - n1.lat) * Math.PI / 180;
   const dLon = (n2.lng - n1.lng) * Math.PI / 180;
   const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(n1.lat * Math.PI / 180) * Math.cos(n2.lat * Math.PI / 180) * 
+            Math.cos(n1.lat * Math.PI / 180) * Math.cos(n2.lat * Math.PI / 180) *
             Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R * c;
@@ -52,6 +52,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   propagationSpeed: 0.8,
   shockMagnitude: 120,
   lastEvent: null,
+  simTimeElapsed: 0,
   setPropagationSpeed: (speed) => set({ propagationSpeed: speed }),
   setShockMagnitude: (magnitude) => set({ shockMagnitude: magnitude }),
   injectShock: (nodeId) => set((state) => {
@@ -69,19 +70,20 @@ export const useSimulationStore = create<SimulationState>((set) => ({
     });
     return {
       nodes: newNodes,
+      simTimeElapsed: 0,
       lastEvent: `ALERT: Shock detected at ${node.name} (${nodeId})`
     };
   }),
   resetSimulation: () => set({
     nodes: INITIAL_NODES.map(n => ({ ...n, history: [] })),
+    simTimeElapsed: 0,
     lastEvent: "SYSTEM: All simulation vectors reset to baseline"
   }),
   tick: () => set((state) => {
     const time = Date.now();
-    const decayFactor = 0.94; // Optimized decay
+    const decayFactor = 0.94;
     const coupling = 0.15 * state.propagationSpeed;
     const nextNodes = state.nodes.map(node => {
-      // 1. Spatial Aggregation with Geo-Distance Falloff
       let neighborhoodImpact = 0;
       const connectedEdges = state.edges.filter(e => e.source === node.id || e.target === node.id);
       connectedEdges.forEach(edge => {
@@ -89,19 +91,16 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         const neighbor = state.nodes.find(n => n.id === neighborId);
         if (neighbor) {
           const distance = getGeoDistance(node, neighbor);
-          const distanceDecay = Math.max(0.1, 1 - (distance / 20000)); // Normalized distance factor
+          const distanceDecay = Math.max(0.1, 1 - (distance / 20000));
           const stress = Math.max(0, neighbor.latency - neighbor.baseline);
           neighborhoodImpact += stress * edge.weight * coupling * distanceDecay;
         }
       });
-      // 2. Temporal GRU Update
       const currentStress = node.latency - node.baseline;
       const nextLatency = node.baseline + (currentStress * decayFactor) + neighborhoodImpact;
-      // 3. Status Mapping
       let nextStatus: NodeStatus = 'stable';
       if (nextLatency > node.baseline * 3) nextStatus = 'critical';
       else if (nextLatency > node.baseline * 1.8) nextStatus = 'warning';
-      // 4. History Snapshot
       const newHistoryEntry = {
         time,
         latency: parseFloat(nextLatency.toFixed(2)),
@@ -115,6 +114,9 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         history: newHistory
       };
     });
-    return { nodes: nextNodes };
+    return { 
+      nodes: nextNodes,
+      simTimeElapsed: state.simTimeElapsed + (1000 * state.propagationSpeed)
+    };
   })
 }));
